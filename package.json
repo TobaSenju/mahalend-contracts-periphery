@@ -1,7 +1,7 @@
 {
-  "name": "@aave/periphery-v3",
-  "version": "2.0.1",
-  "description": "Aave Protocol V3 periphery smart contracts",
+  "name": "@mahalend/periphery",
+  "version": "5.0.1",
+  "description": "MahaLend Protocol periphery smart contracts",
   "files": [
     "contracts",
     "artifacts"
