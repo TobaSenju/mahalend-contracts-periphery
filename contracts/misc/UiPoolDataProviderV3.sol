@@ -36,22 +36,16 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
     marketReferenceCurrencyPriceInUsdProxyAggregator = _marketReferenceCurrencyPriceInUsdProxyAggregator;
   }
 
-  function getReservesList(IPoolAddressesProvider provider)
-    public
-    view
-    override
-    returns (address[] memory)
-  {
+  function getReservesList(
+    IPoolAddressesProvider provider
+  ) public view override returns (address[] memory) {
     IPool pool = IPool(provider.getPool());
     return pool.getReservesList();
   }
 
-  function getReservesData(IPoolAddressesProvider provider)
-    public
-    view
-    override
-    returns (AggregatedReserveData[] memory, BaseCurrencyInfo memory)
-  {
+  function getReservesData(
+    IPoolAddressesProvider provider
+  ) public view override returns (AggregatedReserveData[] memory, BaseCurrencyInfo memory) {
     IAaveOracle oracle = IAaveOracle(provider.getPriceOracle());
     IPool pool = IPool(provider.getPool());
     AaveProtocolDataProvider poolDataProvider = AaveProtocolDataProvider(
@@ -108,6 +102,12 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
       } else {
         reserveData.symbol = IERC20Detailed(reserveData.underlyingAsset).symbol();
         reserveData.name = IERC20Detailed(reserveData.underlyingAsset).name();
+      }
+
+      // For sushiswap tokens we stake them hence available liquidity is always 0 if we take the lp token's balance
+      // of the aToken. this is overriding that value.
+      if (IERC20DetailedBytes(reserveData.underlyingAsset).symbol() == 'SSLP') {
+        reserveData.availableLiquidity = IAToken(reserveData.aTokenAddress).totalSupply();
       }
 
       //stores the reserve configuration
@@ -216,9 +216,7 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
     try oracle.BASE_CURRENCY_UNIT() returns (uint256 baseCurrencyUnit) {
       baseCurrencyInfo.marketReferenceCurrencyUnit = baseCurrencyUnit;
       baseCurrencyInfo.marketReferenceCurrencyPriceInUsd = int256(baseCurrencyUnit);
-    } catch (
-      bytes memory /*lowLevelData*/
-    ) {
+    } catch (bytes memory /*lowLevelData*/) {
       baseCurrencyInfo.marketReferenceCurrencyUnit = ETH_CURRENCY_UNIT;
       baseCurrencyInfo
         .marketReferenceCurrencyPriceInUsd = marketReferenceCurrencyPriceInUsdProxyAggregator
@@ -228,12 +226,10 @@ contract UiPoolDataProviderV3 is IUiPoolDataProviderV3 {
     return (reservesData, baseCurrencyInfo);
   }
 
-  function getUserReservesData(IPoolAddressesProvider provider, address user)
-    external
-    view
-    override
-    returns (UserReserveData[] memory, uint8)
-  {
+  function getUserReservesData(
+    IPoolAddressesProvider provider,
+    address user
+  ) external view override returns (UserReserveData[] memory, uint8) {
     IPool pool = IPool(provider.getPool());
     address[] memory reserves = pool.getReservesList();
     DataTypes.UserConfigurationMap memory userConfig = pool.getUserConfiguration(user);
